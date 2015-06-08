@@ -13,7 +13,8 @@ var sourcemaps = require("gulp-sourcemaps");
 var ngHtml2Js = require("gulp-ng-html2js");
 var htmlMin = require('gulp-minify-html');
 var RSVP = require('rsvp');
-var less = require('gulp-less');
+var sass = require('gulp-sass');
+var minifyCss = require('gulp-minify-css');
 var karma = require('karma').server;
 var insert = require('gulp-insert');
 var ngAnnotate = require('gulp-ng-annotate');
@@ -39,8 +40,8 @@ var path = {
   source:'src/**/*.js',
   html:'**/*.html',
   templates: 'src/**/*.html',
-  less: ['src/**/*.less', '!src/assets/**/*.less'],
-  themes: ['src/assets/dark.less', 'src/assets/light.less'],
+  sass: ['src/**/*.scss', '!src/assets/**/*.scss'],
+  themes: ['src/assets/dark.scss', 'src/assets/light.scss'],
   themesOutput:'dist/assets/',
   output:'dist/',
   outputCss: 'dist/**/*.css'
@@ -59,7 +60,6 @@ gulp.task('clean', function() {
   return gulp.src([path.output])
     .pipe(vinylPaths(del));
 });
-
 gulp.task('html', function () {
   return gulp.src(path.templates)
     .pipe(cache('html'))
@@ -81,16 +81,15 @@ gulp.task('html', function () {
     .pipe(browserSync.reload({ stream: true }));
 });
 
-gulp.task('less', function () {
-  return gulp.src(path.less)
-    .pipe(cache('less'))
+gulp.task('sass', function () {
+  return gulp.src(path.sass)
+    .pipe(cache('sass'))
     .pipe(plumber())
-    .pipe(changed(path.output, {extension: '.css'}))
+    .pipe(changed(path.output, { extension: '.css' }))
     .pipe(sourcemaps.init())
-    .pipe(less({
-      plugins: [ cleancss ]
-    }))
-    .pipe(sourcemaps.write("."))
+    .pipe(sass())
+    .pipe(minifyCss())
+    .pipe(sourcemaps.write('.'))
     .pipe(gulp.dest(path.output))
     .pipe(browserSync.reload({ stream: true }));
 });
@@ -126,15 +125,14 @@ gulp.task('cache-bust', function () {
     .pipe(gulp.dest(path.output));
 });
 
-gulp.task('less-themes', function () {
+gulp.task('sass-themes', function () {
   return gulp.src(path.themes)
-    .pipe(cache('less-themes'))
+    .pipe(cache('sass-themes'))
     .pipe(plumber())
     .pipe(changed(path.output, {extension: '.css'}))
     .pipe(sourcemaps.init())
-    .pipe(less({
-      plugins: [ cleancss ]
-    }))
+    .pipe(sass())
+    .pipe(minifyCss())
     .pipe(sourcemaps.write("."))
     .pipe(gulp.dest(path.themesOutput))
     .pipe(browserSync.reload({ stream: true }));
@@ -170,7 +168,7 @@ gulp.task('inline-systemjs', function () {
 
 gulp.task('compile', function (callback) {
   return runSequence(
-    ['less', 'less-themes', 'html', 'es6', 'move'],
+    ['sass', 'sass-themes', 'html', 'es6', 'move'],
     callback
   );
 });
@@ -220,7 +218,7 @@ gulp.task('serve', ['recompile'], function (done) {
 });
 
 gulp.task('watch', ['serve'], function() {
-  var watcher = gulp.watch([path.source, path.html, path.less, path.themes], ['compile']);
+  var watcher = gulp.watch([path.source, path.html, path.sass, path.themes], ['compile']);
   watcher.on('change', function(event) {
     console.log('File ' + event.path + ' was ' + event.type + ', running tasks...');
   });
